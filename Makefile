@@ -28,7 +28,7 @@ target: $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.cpp,%.o,$(wildcard *.cp
 
 
 helloworld: helloworld.c 
-	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) helloworld.c i2c.c pwm.c -o helloworld
+	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) helloworld.c analogin.c i2c.c pwm.c -o helloworld
 	scp helloworld root@192.168.123.50:
 	ssh root@192.168.123.50 ./helloworld
 
