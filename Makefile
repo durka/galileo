@@ -1,7 +1,8 @@
 SHELL = /bin/sh
 TARGET_BIN    = helloworld
 TARGET_ARCH   = -m32 -march=i586 --sysroot=/opt/cross/i586-poky-linux-uclibc-x-tools
-INCLUDE_DIRS  = -I $(TOOLDIR)../include \
+INCLUDE_DIRS  = -I . \
+				-I $(TOOLDIR)../include \
 				-I $(TOOLDIR)../include/c++ \
 				-I $(TOOLDIR)../lib/i586-poky-linux-uclibc/gcc/i586-poky-linux-uclibc/4.7.2/include 
 LIBRARY_DIRS  = -L $(TOOLDIR)../../lib \
@@ -18,12 +19,18 @@ LD      = $(CC)
 AR      = $(TOOLDIR)i586-poky-linux-uclibc-ar
 CFLAGS  = $(COMPILE_OPTS)
 CXXFLAGS= $(COMPILE_OPTS)
-LDFLAGS = -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed $(LIBRARY_DIRS) -lstdc++
+LDFLAGS = -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed $(LIBRARY_DIRS) -lstdc++ -lpthread
 
 all: target
 
 target: $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.cpp,%.o,$(wildcard *.cpp)) 
-	$(LD) $(LDFLAGS) $(TARGET_ARCH) $^ -o $(TARGET_BIN)
+	$(LD) $(LDFLAGS) $(TARGET_ARCH) $^ -o $(TARGET_BIN) -lpthread
+
+
+helloworld: helloworld.c 
+	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) helloworld.c i2c.c -o helloworld
+	scp helloworld root@192.168.123.50:
+	ssh root@192.168.123.50 ./helloworld
 
 clean:
 	rm -f $(TARGET_BIN) *.o
