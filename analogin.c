@@ -3,13 +3,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <unistd.h>
-
-void echo(char filename[], char* buf)
-{
-    int fd = open(filename, O_WRONLY);
-    write(fd, buf, sizeof buf);
-    close(fd);
-}
+#include <helloworld.h>
 
 int analogin()
 {

@@ -4,7 +4,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "i2c.h"
+#include "UtilTime.h"
+#include "helloworld.h"
 
+//macros to control pwm output
 #define CYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; CYPRESS_(buf); }
 #define CYPRESS_(b) ( send( cypress, 0x20, sizeof (b), (b) ) )
 
@@ -14,27 +17,35 @@ void send(int adapter, unsigned char address, int len, char buf[])
     i2c_writebytes(adapter, buf, len);
 }
 
-void echo(char filename[], char byte)
-{
-    int fd = open(filename, O_WRONLY);
-    char buf[] = {byte, 0};
-    write(fd, buf, 1);
-    close(fd);
-}
-
 int pwm()
 {
-
-    echo("/sys/class/pwm/pwmchip0/export", '3');
-    echo("/sys/class/pwm/pwmchip0/pwm3/enable", '1');
-    printf("Enabled PWM output on pin 3.\n");
-
     int cypress = i2c_openadapter(0);
     printf("Opened cypress: %d\n", cypress);
-
-    //            PWM select, clock source, period, pulse width
-    CYPRESS(0x28, 0x02,       0x01,         0x03,   0x02        );
-    CYPRESS(0x28, 0x03,       0x05,         0xCD,   0x66        );
+    //PWM select, clock source, period, pulse width, f dividier
+    //format:reg1, val-of-reg1, val-of-reg2, val-of-reg3 ...
+    CYPRESS(0x28, 5, 1, 3, 2);
+    CYPRESS(0x28, 6, 5, 205, 50);
+   // delay(1000);
+//    CYPRESS(0x28, 6, 5, 205, 150)
+/*
+    double clk = 32000;
+    double clksrc = 0;
+    double div = 1;
+    clk = clk/div;
+    double period = 10;
+    double pw = 5;
+    double scale = 0.813;
+    double f = scale*clk/period; 
+    double T = 1/f;
+    int i;
+    CYPRESS(0x28, 5, clksrc, period, pw);
+    while (true) {
+    for(i = 0; i < 10; i++){
+        CYPRESS(0x28, 4, clksrc, period, i, div);
+        delay(T/1000);
+    }
+    }*/
+  //  printf("f: %f\n", f);
     printf("Wrote I2C #2 and #3 bytes\n");
 
     return 0;

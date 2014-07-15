@@ -24,11 +24,11 @@ LDFLAGS = -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed $(LIBRARY_DIRS) -lstdc++ 
 all: target
 
 target: $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.cpp,%.o,$(wildcard *.cpp)) 
-	$(LD) $(LDFLAGS) $(TARGET_ARCH) $^ -o $(TARGET_BIN) -lpthread
+	$(LD) $(LDFLAGS) $(TARGET_ARCH) $^ -o $(TARGET_BIN) -lpthread 
 
 
 helloworld: helloworld.c 
-	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) helloworld.c analogin.c i2c.c pwm.c -o helloworld
+	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) helloworld.c timer.c analogin.c UtilTime.cpp i2c.c pwm.c -Wno-write-strings -o helloworld -lrt 
 	scp helloworld root@192.168.123.50:
 	ssh root@192.168.123.50 ./helloworld
 
