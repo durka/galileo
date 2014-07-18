@@ -4,11 +4,13 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include "pwm.h"
 #include "i2c.h"
 #include "analogin.h"
 #include "timer.h"
 #include "UtilTime.h"
+#include "mypwm.h"
 
 int echo(char filename[], char value[])
 {
@@ -32,43 +34,41 @@ int echo(char filename[], char value[])
 
 void init()
 {
-    echo("/sys/class/gpio/export", "30");
-    echo("/sys/class/gpio/gpio30/direction", "out");
-    echo("/sys/class/gpio/gpio30/value", "1"); 
-
-    echo("/sys/class/gpio/export", "18");
-    echo("/sys/class/gpio/gpio18/direction", "out");
-    echo("/sys/class/gpio/gpio18/value", "1"); 
-    echo("/sys/class/gpio/gpio18/drive", "strong"); 
-
-    echo("/sys/class/pwm/pwmchip0/export", "3");
-    echo("/sys/class/pwm/pwmchip0/pwm3/enable", "1");
-//    echo("/sys/class/pwm/pwmchip0/pwm3/period", "250000"); 
- //   echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "125000"); 
+    //gpio27 is digital pin 7
+/*
+    echo("/sys/class/gpio/export", "27");
+    echo("/sys/class/gpio/gpio27/direction", "out");
+    echo("/sys/class/gpio/gpio27/drive", "strong"); 
+    echo("/sys/class/gpio/gpio27/value", "0"); 
+*/    
     
 }
 
 void deactivate_pins()
 {
-    echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "0"); 
-    echo("/sys/class/pwm/pwmchip0/pwm3/period", "1"); 
-    echo("/sys/class/pwm/pwmchip0/pwm3/enable", "0");
-    echo("/sys/class/pwm/pwmchip0/unexport", "3");
-
-    echo("/sys/class/gpio/unexport", "30");
-
-    echo("/sys/class/gpio/gpio18/value", "0"); 
-    echo("/sys/class/gpio/unexport", "18");
+    echo("/sys/class/gpio/gpio27/value", "0"); 
+    echo("/sys/class/gpio/unexport", "27");
 
 }
 
 int main(int argc, char const* argv[])
 {
     printf("Hello, world!\n");
-    deactivate_pins();
-    init();
-    pwm(); 
-
+    //sleep for 12500 ns (half period of 40 kHz)
+   /* struct timespec interval;
+    struct timespec remaining;
+    interval.tv_sec = 0;
+    interval.tv_nsec = 12500;
+*/
+//    timer(1, 100);
+    mypwm(1, 100);
+ /*   for (int i = 0; i < 80000; i++) {
+        echo("/sys/class/gpio/gpio27/value", "1"); 
+        nanosleep(&interval, &remaining);
+        echo("/sys/class/gpio/gpio27/value", "0"); 
+        nanosleep(&interval, &remaining);
+    }
+   */ 
 
     printf("Bye, friends!\n");
     return 0;
