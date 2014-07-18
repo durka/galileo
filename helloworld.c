@@ -9,7 +9,6 @@
 #include "i2c.h"
 #include "analogin.h"
 #include "timer.h"
-#include "UtilTime.h"
 #include "mypwm.h"
 
 int echo(char filename[], char value[])
@@ -54,21 +53,12 @@ void deactivate_pins()
 int main(int argc, char const* argv[])
 {
     printf("Hello, world!\n");
-    //sleep for 12500 ns (half period of 40 kHz)
-   /* struct timespec interval;
-    struct timespec remaining;
-    interval.tv_sec = 0;
-    interval.tv_nsec = 12500;
-*/
-//    timer(1, 100);
-    mypwm(1, 100);
- /*   for (int i = 0; i < 80000; i++) {
-        echo("/sys/class/gpio/gpio27/value", "1"); 
-        nanosleep(&interval, &remaining);
-        echo("/sys/class/gpio/gpio27/value", "0"); 
-        nanosleep(&interval, &remaining);
-    }
-   */ 
+    mypwm();
+//    timer(2, 10000000); 
+   /* for (int i = 0; i < 5; i++) {
+        printf("secs = %d\n", i);
+        sleep(1);
+    }*/
 
     printf("Bye, friends!\n");
     return 0;

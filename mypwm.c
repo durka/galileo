@@ -9,14 +9,32 @@
 #define SIG SIGRTMIN
 #define CLKID CLOCK_REALTIME
 
+//global varialbes
+int exit_sig = 0;
+int count = 0;
+int out = 0;
+
 //what to do after timer expires
 void handler(int sig)
 {
-    printf("output HI\n");
+    printf("handle sig\n");
+    if (out) {
+        printf("HIGH\n");
+        out = 0;
+    }
+    else {
+        printf("LOW\n");
+        out = 1;
+    }
+//increase count or activate exit signal
+    if (count > 9)
+        exit_sig = 1;
+    else 
+        count++; 
 
 }
 
-void mypwm(int sleep_s, int nanosleep)
+void mypwm()
 {
 
     timer_t timerid;
@@ -43,14 +61,19 @@ void mypwm(int sleep_s, int nanosleep)
     //start timer
     //set timing intervals
     its.it_interval.tv_sec = 0;
-    its.it_interval.tv_nsec = 50000000;
-    its.it_value.tv_sec = 3;
+    its.it_interval.tv_nsec = 0; 
+    its.it_value.tv_sec = 1;
     its.it_value.tv_nsec = 0;
-    
+  /*  
     if(timer_settime(timerid, 0, &its, NULL) == -1)
         perror("failed: timer settime\n");
-    
-    sleep(10); 
-    
-
+    sleep(2);
+*/
+    //while loop to keep going
+    while (!exit_sig) {
+        if(timer_settime(timerid, 0, &its, NULL) == -1) {
+            perror("failed: timer settime\n");
+            exit_sig = 1;
+        }
+    }
 }

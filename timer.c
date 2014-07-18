@@ -38,7 +38,7 @@ see signal(7) */
 
     printf("Caught signal %d\n", sig);
     print_siginfo(si);
-    signal(sig, SIG_IGN);
+ //   signal(sig, SIG_IGN);
 }
 
 int timer(int sleep_s, int f_nanos)
@@ -50,11 +50,6 @@ int timer(int sleep_s, int f_nanos)
     sigset_t mask;
     struct sigaction sa;
 
- /*   if (argc != 3) {
-        fprintf(stderr, "Usage: %s <sleep-secs> <freq-nanosecs>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-*/
     /* Establish handler for timer signal */
 
     printf("Establishing handler for signal %d\n", SIG);
@@ -65,13 +60,13 @@ int timer(int sleep_s, int f_nanos)
     errExit("sigaction");
 
     /* Block timer signal temporarily */
-
-    printf("Blocking signal %d\n", SIG);
+    //a signal mask is a set of blcocked signals
+   /* printf("Blocking signal %d\n", SIG);
     sigemptyset(&mask);
     sigaddset(&mask, SIG);
     if (sigprocmask(SIG_SETMASK, &mask, NULL) == -1)
         errExit("sigprocmask");
-
+*/
     /* Create the timer */
 
      sev.sigev_notify = SIGEV_SIGNAL;
@@ -97,13 +92,13 @@ int timer(int sleep_s, int f_nanos)
               multiple times */
      printf("Sleeping for %d seconds\n", sleep_s);
      sleep(sleep_s);
-
+    printf("woken up\n");
      /* Unlock the timer signal, so that timer notification
               can be delivered */
 
-     printf("Unblocking signal %d\n", SIG);
-     if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == -1)
-        errExit("sigprocmask");
+ //    printf("Unblocking signal %d\n", SIG);
+ //    if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == -1)
+  //      errExit("sigprocmask");
 
      exit(EXIT_SUCCESS);
 }
