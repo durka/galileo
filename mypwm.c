@@ -6,74 +6,101 @@
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
+#include <helloworld.h>
 #define SIG SIGRTMIN
 #define CLKID CLOCK_REALTIME
 
+
 //global varialbes
-int exit_sig = 0;
+volatile int exit_sig = 0;
 int count = 0;
-int out = 0;
+int high = 0;
+struct itimerspec its;
+timer_t timerid;
+time_t highT = 2800000;
+
+void set_time(time_t val_s, time_t val_ns, time_t int_s, time_t int_ns)
+{
+    its.it_value.tv_sec = val_s;
+    its.it_value.tv_nsec = val_ns;
+    its.it_interval.tv_sec = int_s;
+    its.it_interval.tv_nsec = int_ns; 
+} 
 
 //what to do after timer expires
-void handler(int sig)
+void handler(int sig, siginfo_t *si, void *uc)
 {
-    printf("handle sig\n");
-    if (out) {
-        printf("HIGH\n");
-        out = 0;
+
+    if (count > 2000) {
+        exit_sig = 1;
+        return;
+    }
+    else { 
+        count++; 
+    }
+
+    set_time(0, highT, 0, 0);
+
+    if(timer_settime(timerid, 0, &its, NULL) == -1) {
+        perror("failed: ");
+        exit_sig = 1;
+    }
+
+    if (high) {
+        echo("/sys/class/gpio/gpio27/value", "1");
+        high = 0;
     }
     else {
-        printf("LOW\n");
-        out = 1;
+        echo("/sys/class/gpio/gpio27/value", "0");
+        high = 1;
     }
 //increase count or activate exit signal
-    if (count > 9)
-        exit_sig = 1;
-    else 
-        count++; 
 
 }
 
 void mypwm()
 {
 
-    timer_t timerid;
     struct sigevent sev;
     struct sigaction sa;
-    struct itimerspec its;
-    sa.sa_flags = SA_RESETHAND;
-    sa.sa_handler = handler;
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = handler;
     sev.sigev_notify = SIGEV_SIGNAL;
     sev.sigev_signo = SIG;
     sev.sigev_value.sival_ptr = &timerid;
 
     //init handler for signal
     if (sigaction(SIG, &sa, NULL) == -1)
-        perror("sigaction");
+        perror("sigaction: ");
   
     //create timer    
-    if(timer_create(CLKID, &sev, &timerid) == -1)
-        printf("failed: timer create\n");
+    if (timer_create(CLKID, &sev, &timerid) == -1)
+        perror("timer create: \n");
 
-    printf("timerid: %d\n", timerid);
-    printf("sig id: %d\n", SIG);
+   // printf("timerid: %d\n", timerid);
+   // printf("sig id: %d\n", SIG);
     
     //start timer
     //set timing intervals
-    its.it_interval.tv_sec = 0;
-    its.it_interval.tv_nsec = 0; 
-    its.it_value.tv_sec = 1;
-    its.it_value.tv_nsec = 0;
-  /*  
+
+    set_time(0, highT, 0, 0);
+ /*
     if(timer_settime(timerid, 0, &its, NULL) == -1)
         perror("failed: timer settime\n");
-    sleep(2);
+    int i = sleep(2);
+    printf("sleep s remaining: %d\n", i);
 */
-    //while loop to keep going
-    while (!exit_sig) {
-        if(timer_settime(timerid, 0, &its, NULL) == -1) {
-            perror("failed: timer settime\n");
-            exit_sig = 1;
-        }
+    int i_while = 0;
+    if(timer_settime(timerid, 0, &its, NULL) == -1) {
+        perror("failed: ");
+        exit_sig = 1;
     }
+
+    //while loop to keep going
+    while (1) {
+        if (exit_sig)
+            break;
+         
+    }
+    printf("i_while: %d\n", i_while);
 }

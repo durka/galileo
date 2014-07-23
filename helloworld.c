@@ -21,7 +21,7 @@ int echo(char filename[], char value[])
     }
     int n = strlen(value);
     int n_wrote  = write(fd, value, n);
-    printf("wrote %d/%d of %s to %s\n", n_wrote, strlen(value), value, filename);
+//    printf("wrote %d/%d of %s to %s\n", n_wrote, strlen(value), value, filename);
     if (n_wrote == -1)
     {
         printf("\twrite: %s\n", strerror(errno));
@@ -34,12 +34,12 @@ int echo(char filename[], char value[])
 void init()
 {
     //gpio27 is digital pin 7
-/*
+
     echo("/sys/class/gpio/export", "27");
     echo("/sys/class/gpio/gpio27/direction", "out");
     echo("/sys/class/gpio/gpio27/drive", "strong"); 
-    echo("/sys/class/gpio/gpio27/value", "0"); 
-*/    
+    echo("/sys/class/gpio/gpio27/value", "1"); 
+    
     
 }
 
@@ -53,13 +53,9 @@ void deactivate_pins()
 int main(int argc, char const* argv[])
 {
     printf("Hello, world!\n");
+    init();
     mypwm();
-//    timer(2, 10000000); 
-   /* for (int i = 0; i < 5; i++) {
-        printf("secs = %d\n", i);
-        sleep(1);
-    }*/
-
+    deactivate_pins();
     printf("Bye, friends!\n");
     return 0;
 }
