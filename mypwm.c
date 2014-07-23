@@ -15,10 +15,12 @@
 volatile int exit_sig = 0;
 int count = 0;
 int high = 0;
-struct itimerspec its;
+struct itimerspec its; //timing information
 timer_t timerid;
-time_t highT = 2800000;
+time_t highT = 2800000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
 
+//val is initial value of timer, int (interval), is every subsequent value 
+//if int is 0, timer expires once only
 void set_time(time_t val_s, time_t val_ns, time_t int_s, time_t int_ns)
 {
     its.it_value.tv_sec = val_s;
@@ -30,7 +32,7 @@ void set_time(time_t val_s, time_t val_ns, time_t int_s, time_t int_ns)
 //what to do after timer expires
 void handler(int sig, siginfo_t *si, void *uc)
 {
-
+//will exit after about 5s for freq of ard 180 Hz
     if (count > 2000) {
         exit_sig = 1;
         return;
@@ -38,14 +40,15 @@ void handler(int sig, siginfo_t *si, void *uc)
     else { 
         count++; 
     }
-
+    //arm timer again
+    //same timing interval for hi and lo for 50% duty cycle
     set_time(0, highT, 0, 0);
 
     if(timer_settime(timerid, 0, &its, NULL) == -1) {
         perror("failed: ");
         exit_sig = 1;
     }
-
+    //oscillate between high and low
     if (high) {
         echo("/sys/class/gpio/gpio27/value", "1");
         high = 0;
@@ -54,13 +57,12 @@ void handler(int sig, siginfo_t *si, void *uc)
         echo("/sys/class/gpio/gpio27/value", "0");
         high = 1;
     }
-//increase count or activate exit signal
 
 }
 
 void mypwm()
 {
-
+    //init timer
     struct sigevent sev;
     struct sigaction sa;
     sa.sa_flags = SA_SIGINFO;
@@ -77,20 +79,9 @@ void mypwm()
     if (timer_create(CLKID, &sev, &timerid) == -1)
         perror("timer create: \n");
 
-   // printf("timerid: %d\n", timerid);
-   // printf("sig id: %d\n", SIG);
-    
-    //start timer
-    //set timing intervals
 
     set_time(0, highT, 0, 0);
- /*
-    if(timer_settime(timerid, 0, &its, NULL) == -1)
-        perror("failed: timer settime\n");
-    int i = sleep(2);
-    printf("sleep s remaining: %d\n", i);
-*/
-    int i_while = 0;
+
     if(timer_settime(timerid, 0, &its, NULL) == -1) {
         perror("failed: ");
         exit_sig = 1;
@@ -102,5 +93,4 @@ void mypwm()
             break;
          
     }
-    printf("i_while: %d\n", i_while);
 }
