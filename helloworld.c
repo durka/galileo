@@ -13,7 +13,6 @@
 
 int echo(char filename[], char value[])
 {
-    int write_true;
     int fd = open(filename, O_WRONLY);
     if (fd == -1)
     {
@@ -53,9 +52,9 @@ void deactivate_pins()
 int main(int argc, char const* argv[])
 {
     printf("Hello, world!\n");
-    init();
-    mypwm();
-    deactivate_pins();
+//    init();
+    pwm();
+//    deactivate_pins();
     printf("Bye, friends!\n");
     return 0;
 }

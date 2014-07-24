@@ -33,7 +33,7 @@ void set_time(time_t val_s, time_t val_ns, time_t int_s, time_t int_ns)
 void handler(int sig, siginfo_t *si, void *uc)
 {
 //will exit after about 5s for freq of ard 180 Hz
-    if (count > 2000) {
+    if (count > 20000) {
         exit_sig = 1;
         return;
     }

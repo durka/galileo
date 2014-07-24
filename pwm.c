@@ -5,12 +5,14 @@
 #include <unistd.h>
 #include "i2c.h"
 #include "helloworld.h"
+#include "i2c-dev.h"
 
 //macros to control pwm output
-#define CYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; CYPRESS_(buf); }
-#define CYPRESS_(b) ( send( cypress, 0x20, sizeof (b), (b) ) )
-#define READ_CYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; READ_CYPRESS_(buf); }
-#define READ_CYPRESS_(b) ( read( cypress, 0x20, sizeof (b), (b) ) )
+#define WCYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; WCYPRESS_(buf); }
+#define WCYPRESS_(b) ( send( cypress, 0x20, sizeof (b), (b) ) )
+
+#define RCYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; RCYPRESS_(buf); }
+#define RCYPRESS_(b) ( read( cypress, 0x20, sizeof (b), (b) ) )
 
 void send(int adapter, unsigned char address, int len, char buf[])
 {
@@ -18,10 +20,10 @@ void send(int adapter, unsigned char address, int len, char buf[])
     i2c_writebytes(adapter, buf, len);
 }
 
-void read(int adapter, unsigned char address, int len, char buf[])
+int read_reg(int adapter, unsigned char address, int len, char buf[])
 {
     i2c_setslave(adapter, address);
-    i2c_readbytes(adapter, buf, len);
+    return i2c_readbytes(adapter, buf, len);
 }
 void init_pwm() 
 {
@@ -60,38 +62,26 @@ int pwm()
     
     //PWM select, clock source, period, pulse width, f dividier
     //format:reg1, val-of-reg1, val-of-reg2, val-of-reg3 ...
-    /*for (int i = 1; i < 5; i++) {
-        CYPRESS(0x28, 2, 1, 3, 2);
-        CYPRESS(0x28, 3, 5, 205, 180);
 
-        usleep(31);
-
-        CYPRESS(0x28, 2, 1, 3, 2);
-        CYPRESS(0x28, 3, 5, 205, 10);
-        
-        usleep(31);
-    }*
-*
-    for (int i = 0; i < 10; i++) {  
-        CYPRESS(0x28, 3, 4, 150, 15, 255);
-        usleep(397392);
-        CYPRESS(0x28, 3, 4, 150, 45, 255);
-        usleep(397392);
-        CYPRESS(0x28, 3, 4, 150, 75, 255);
-        usleep(397392);
-        CYPRESS(0x28, 3, 4, 150, 110, 255);
-        usleep(397392);
-        CYPRESS(0x28, 3, 4, 150, 145, 255);
-        usleep(397392);
-    }*/
-
-//        CYPRESS(0x28, 3, 4, 150, 75, 255);
-    init_pwm();
-  //  CYPRESS(0x19, 0);
-  //  CYPRESS(0x28, 3, 4, 100, 50, 255);  
-    int* readbyte;
     deactivate_pwm();
-    printf("Wrote I2C #2 and #3 bytes\n");
+    init_pwm();
+    WCYPRESS(0x28, 2, 1, 3, 2);
+    WCYPRESS(0x28, 3, 5, 205, 100);
+    printf("wrote i2c #2 and #3 bytes\n");
+//    deactivate_pwm();
+    //int r = read_reg(cypress, 0x20, sizeof readbyte, &readbyte);
+
+//read interrupt register
+    union i2c_smbus_data read_data;//where data is read;
+    struct i2c_smbus_ioctl_data read_args;
+
+    read_args.read_write = I2C_SMBUS_READ;
+    read_args.command = 0x29; //interrupt register address 
+    read_args.size = I2C_SMBUS_BYTE;
+    read_args.data = &read_data;
+    int r = ioctl(cypress, I2C_SMBUS, &read_args);  
+
+    printf("ret: %d. read: %d\n ", r, read_data.byte);
 
     return 0;
 }
