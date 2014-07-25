@@ -25,35 +25,44 @@ int read_reg(int adapter, unsigned char address, int len, char buf[])
     i2c_setslave(adapter, address);
     return i2c_readbytes(adapter, buf, len);
 }
-void init_pwm() 
+//based on opeartion of cypress pwm
+double getfreq(int clkno, int T, int div)
 {
-    echo("/sys/class/gpio/export", "30");
-    
-    echo("/sys/class/gpio/gpio30/direction", "out");
-    echo("/sys/class/gpio/gpio30/value", "1");
+    double clkf;
+    double scale;
+    double T_lenght;
+    double f_actual;
 
-    echo("/sys/class/gpio/export", "18");
-    echo("/sys/class/gpio/gpio18/direction", "out");
-    echo("/sys/class/gpio/gpio18/value", "1");
-    echo("/sys/class/gpio/gpio18/drive", "strong");
+    switch (clkno) {
+        case 0:
+            clkf = 32000;
+            scale = 1.23;
+            break;
+        case 1:
+            clkf = 24000000;
+            scale = 0.975;
+            break;  
+        case 2:
+            clkf = 1500000;
+            scale = 0.975;
+            break;
+        case 3:
+            clkf = 93750;
+            scale = 0.975;
+            break;
+        case 4:
+            clkf = 93750.0/div;         
+            scale = 0.975; 
+            break;
+        default:
+            clkf = clkno;
+            scale = 0.997;
+            break;
+    } 
+    f_actual = clkf/(T*scale); 
+    return f_actual;
 
-    echo("/sys/class/pwm/pwmchip0/export", "3");
-    echo("/sys/class/pwm/pwmchip0/pwm3/enable", "1");
-    
 }
-
-void deactivate_pwm() 
-{
-    echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "0");
-    echo("/sys/class/pwm/pwmchip0/pwm3/period", "1");
-    echo("/sys/class/pwm/pwmchip0/pwm3/enable", "0");
-    echo("/sys/class/pwm/pwmchip0/unexport", "3");
-    
-    echo("/sys/class/gpio/unexport", "30");
-
-    echo("/sys/class/gpio/gpio18/value", "0");
-    echo("/sys/class/gpio/unexport", "18");
-}    
 
 int pwm()
 {
@@ -62,17 +71,22 @@ int pwm()
     
     //PWM select, clock source, period, pulse width, f dividier
     //format:reg1, val-of-reg1, val-of-reg2, val-of-reg3 ...
-
-    deactivate_pwm();
-    init_pwm();
+/*40 kHz pwm
     WCYPRESS(0x28, 2, 1, 3, 2);
     WCYPRESS(0x28, 3, 5, 205, 100);
+*/
+
+    int clkid = 4;
+    int T = 2;
+    int div = 255;
+    WCYPRESS(0x28, 3, clkid, T, 1, div);
+
+    printf("freq: %f\n", getfreq(clkid, T, div));
     printf("wrote i2c #2 and #3 bytes\n");
-//    deactivate_pwm();
     //int r = read_reg(cypress, 0x20, sizeof readbyte, &readbyte);
 
 //read interrupt register
-    union i2c_smbus_data read_data;//where data is read;
+    union i2c_smbus_data read_data;//data is copied into here;
     struct i2c_smbus_ioctl_data read_args;
 
     read_args.read_write = I2C_SMBUS_READ;

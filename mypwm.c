@@ -15,9 +15,10 @@
 volatile int exit_sig = 0;
 int count = 0;
 int high = 0;
+int T_count = 0;
 struct itimerspec its; //timing information
 timer_t timerid;
-time_t highT = 2800000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
+time_t highT = 5600000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
 
 //val is initial value of timer, int (interval), is every subsequent value 
 //if int is 0, timer expires once only
@@ -39,25 +40,22 @@ void handler(int sig, siginfo_t *si, void *uc)
     }
     else { 
         count++; 
+        T_count ++;
     }
     //arm timer again
-    //same timing interval for hi and lo for 50% duty cycle
     set_time(0, highT, 0, 0);
 
     if(timer_settime(timerid, 0, &its, NULL) == -1) {
         perror("failed: ");
         exit_sig = 1;
     }
-    //oscillate between high and low
-    if (high) {
-        echo("/sys/class/gpio/gpio27/value", "1");
-        high = 0;
-    }
-    else {
-        echo("/sys/class/gpio/gpio27/value", "0");
-        high = 1;
-    }
-
+    //cycle between periods 
+    if (T_count > 10)  
+        T_count = 1;
+        
+    int dc = highT*T_count/10;
+        echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", sprintf("%d", dc));
+    
 }
 
 void mypwm()
@@ -86,6 +84,9 @@ void mypwm()
         perror("failed: ");
         exit_sig = 1;
     }
+//start period
+    echo("/sys/class/pwm/pwmchip0/pwm3/period", sprintf("%d", highT));
+    echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", sprintf("%d", highT/2));
 
     //while loop to keep going
     while (1) {
@@ -94,3 +95,4 @@ void mypwm()
          
     }
 }
+
