@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "i2c.h"
-#include "helloworld.h"
+#include "dsp.h"
 #include "i2c-dev.h"
 
 //macros to control pwm output
