@@ -30,7 +30,6 @@ double getfreq(int clkno, int T, int div)
 {
     double clkf;
     double scale;
-    double T_lenght;
     double f_actual;
 
     switch (clkno) {
@@ -80,6 +79,7 @@ int pwm()
     int T = 2;
     int div = 255;
     WCYPRESS(0x28, 3, clkid, T, 1, div);
+    WCYPRESS(0x19, 0);//write 0 to interrupt mask (unblock int)
 
     printf("freq: %f\n", getfreq(clkid, T, div));
     printf("wrote i2c #2 and #3 bytes\n");

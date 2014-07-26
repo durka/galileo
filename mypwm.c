@@ -18,7 +18,7 @@ int high = 0;
 int T_count = 0;
 struct itimerspec its; //timing information
 timer_t timerid;
-time_t highT = 5600000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
+time_t highT = 60000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
 
 //val is initial value of timer, int (interval), is every subsequent value 
 //if int is 0, timer expires once only
@@ -79,20 +79,24 @@ void mypwm()
 
 
     set_time(0, highT, 0, 0);
-
+/*
     if(timer_settime(timerid, 0, &its, NULL) == -1) {
         perror("failed: ");
         exit_sig = 1;
-    }
+    }*/
 //start period
-    echo("/sys/class/pwm/pwmchip0/pwm3/period", sprintf("%d", highT));
-    echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", sprintf("%d", highT/2));
+    char T[9]; 
+    char dc[9];
+    sprintf(T, "%d", (int)highT);
+    sprintf(dc, "%d", (int)highT/2);
+    echo("/sys/class/pwm/pwmchip0/pwm3/period", T);
+    echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", dc);
 
     //while loop to keep going
-    while (1) {
+ /*   while (1) {
         if (exit_sig)
             break;
          
-    }
+    }*/
 }
 
