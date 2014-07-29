@@ -3,29 +3,38 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
+#include <signal.h>
 #include "i2c.h"
 #include "dsp.h"
 #include "i2c-dev.h"
+//global varialbes
+int cypress;
+volatile int exit_sig = 0;
+int count = 0;
+int high = 0;
+int T_count = 0;
+struct itimerspec its; //timing information
+timer_t timerid;
+time_t highT = 25000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
 
 //macros to control pwm output
-#define WCYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; WCYPRESS_(buf); }
-#define WCYPRESS_(b) ( send( cypress, 0x20, sizeof (b), (b) ) )
+#define WCYPRESS(...) {\
+    unsigned char buf[] = { __VA_ARGS__ };\
+    i2c_writebytes(cypress, buf, sizeof(buf)); }
 
-#define RCYPRESS(...) { unsigned char buf[] = { __VA_ARGS__ }; RCYPRESS_(buf); }
-#define RCYPRESS_(b) ( read( cypress, 0x20, sizeof (b), (b) ) )
+//timing variables
+#define SIG SIGRTMIN
+#define CLKID CLOCK_REALTIME
 
-void send(int adapter, unsigned char address, int len, char buf[])
+//write to cypress chip
+void send(int adapter, unsigned char address, int len, unsigned char buf[])
 {
     i2c_setslave(adapter, address);
     i2c_writebytes(adapter, buf, len);
 }
 
-int read_reg(int adapter, unsigned char address, int len, char buf[])
-{
-    i2c_setslave(adapter, address);
-    return i2c_readbytes(adapter, buf, len);
-}
-//based on opeartion of cypress pwm
+//get clk freq based on input to cypress registers
 double getfreq(int clkno, int T, int div)
 {
     double clkf;
@@ -58,45 +67,92 @@ double getfreq(int clkno, int T, int div)
             scale = 0.997;
             break;
     } 
+
     f_actual = clkf/(T*scale); 
     return f_actual;
-
 }
 
+//val is initial value of timer, int (interval), is every subsequent value 
+//if int is 0, timer expires once only
+void set_time(time_t val_s, time_t val_ns, time_t int_s, time_t int_ns)
+{
+    its.it_value.tv_sec = val_s;
+    its.it_value.tv_nsec = val_ns;
+    its.it_interval.tv_sec = int_s;
+    its.it_interval.tv_nsec = int_ns; 
+} 
+
+//what to do after timer expires
+void handler(int sig, siginfo_t *si, void *uc)
+{
+//reset time for a period
+    set_time(0, highT, 0, 0);
+
+    if(timer_settime(timerid, 0, &its, NULL) == -1) {
+        perror("failed: ");
+        exit_sig = 1;
+    }
+    if (high){
+        high = 0;
+        WCYPRESS(0x28, 2, 1, 3, 2);
+        WCYPRESS(0x28, 3, 5, 205, 200);
+    }
+    else {
+        high = 1;
+
+        WCYPRESS(0x28, 2, 1, 3, 2);
+        WCYPRESS(0x28, 3, 5, 205, 10);
+    }
+        
+    
+}
+//write to the cypress pwm
 int pwm()
 {
-    int cypress = i2c_openadapter(0);
+    //establish connection with cypress
+    cypress = i2c_openadapter(0);
+    i2c_setslave(cypress, 0x20) ;
     printf("Opened cypress: %d\n", cypress);
+
+    //init timer
+    struct sigevent sev;
+    struct sigaction sa;
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = handler;
+    sev.sigev_notify = SIGEV_SIGNAL;
+    sev.sigev_signo = SIG;
+    sev.sigev_value.sival_ptr = &timerid;
+
+    //init handler for signal
+    if (sigaction(SIG, &sa, NULL) == -1)
+        perror("sigaction: ");
+  
+    //create timer    
+    if (timer_create(CLKID, &sev, &timerid) == -1)
+        perror("timer create: \n");
+
+    set_time(0, highT, 0, 0);
     
-    //PWM select, clock source, period, pulse width, f dividier
+    //PWM select, clockid, period, pulse width, f dividier
     //format:reg1, val-of-reg1, val-of-reg2, val-of-reg3 ...
-/*40 kHz pwm
+    //40 kHz pwm
     WCYPRESS(0x28, 2, 1, 3, 2);
-    WCYPRESS(0x28, 3, 5, 205, 100);
-*/
+    WCYPRESS(0x28, 3, 5, 205, 10);
 
-    int clkid = 4;
-    int T = 2;
-    int div = 255;
-    WCYPRESS(0x28, 3, clkid, T, 1, div);
-    WCYPRESS(0x19, 0);//write 0 to interrupt mask (unblock int)
+    if(timer_settime(timerid, 0, &its, NULL) == -1) {
+        perror("failed: ");
+        exit_sig = 1;
+    }
 
-    printf("freq: %f\n", getfreq(clkid, T, div));
-    printf("wrote i2c #2 and #3 bytes\n");
-    //int r = read_reg(cypress, 0x20, sizeof readbyte, &readbyte);
+   // int clkid1 = 1; int T1 = 3; int T2 = 205;
+  //  printf("clk freq: %f Hz\n", getfreq(getfreq(clkid1, T1, 1), T2, 1)); 
 
-//read interrupt register
-    union i2c_smbus_data read_data;//data is copied into here;
-    struct i2c_smbus_ioctl_data read_args;
-
-    read_args.read_write = I2C_SMBUS_READ;
-    read_args.command = 0x29; //interrupt register address 
-    read_args.size = I2C_SMBUS_BYTE;
-    read_args.data = &read_data;
-    int r = ioctl(cypress, I2C_SMBUS, &read_args);  
-
-    printf("ret: %d. read: %d\n ", r, read_data.byte);
+    while (1) {
+        if (exit_sig)
+            break;
+    }
 
     return 0;
 }
+
 

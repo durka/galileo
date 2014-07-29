@@ -28,7 +28,7 @@ target: $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.cpp,%.o,$(wildcard *.cp
 
 
 dsp: dsp.c 
-	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) dsp.c mypwm.c i2c.c pwm.c -Wno-write-strings -o dsp -lrt 
+	$(CXX) $(CXXFLAGS) $(TARGET_ARCH) dsp.c i2c.c pwm.c -Wno-write-strings -o dsp -lrt 
 	scp dsp root@192.168.123.50:
 #	ssh root@192.168.123.50 ./dsp
 

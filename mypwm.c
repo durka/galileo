@@ -39,9 +39,10 @@ void handler(int sig, siginfo_t *si, void *uc)
         return;
     }
     else { 
-        count++; 
+        count ++; 
         T_count ++;
     }
+
     //arm timer again
     set_time(0, highT, 0, 0);
 
@@ -87,16 +88,12 @@ void mypwm()
 //start period
     char T[9]; 
     char dc[9];
-    sprintf(T, "%d", (int)highT);
-    sprintf(dc, "%d", (int)highT/2);
-    echo("/sys/class/pwm/pwmchip0/pwm3/period", T);
-    echo("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", dc);
 
     //while loop to keep going
- /*   while (1) {
+    while (1) {
         if (exit_sig)
             break;
          
-    }*/
+    }
 }
 

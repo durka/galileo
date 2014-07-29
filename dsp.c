@@ -88,7 +88,6 @@ int main(int argc, char const* argv[])
     deactiv_pwm();
     init_pwm();
     pwm();
-    //deactiv_pwm();
     printf("Bye, friends!\n");
     return 0;
 }
