@@ -16,9 +16,9 @@ int high = 0;
 int T_count = 0;
 struct itimerspec its; //timing information
 timer_t timerid;
-time_t highT = 25000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wave
+time_t highT = 1000000; //
 
-//macros to control pwm output
+//macros to write to cypress chip
 #define WCYPRESS(...) {\
     unsigned char buf[] = { __VA_ARGS__ };\
     i2c_writebytes(cypress, buf, sizeof(buf)); }
@@ -26,13 +26,6 @@ time_t highT = 25000; //if 50% dc, 2800000ns of high time outputs ~180 Hz sq wav
 //timing variables
 #define SIG SIGRTMIN
 #define CLKID CLOCK_REALTIME
-
-//write to cypress chip
-void send(int adapter, unsigned char address, int len, unsigned char buf[])
-{
-    i2c_setslave(adapter, address);
-    i2c_writebytes(adapter, buf, len);
-}
 
 //get clk freq based on input to cypress registers
 double getfreq(int clkno, int T, int div)
@@ -85,25 +78,24 @@ void set_time(time_t val_s, time_t val_ns, time_t int_s, time_t int_ns)
 //what to do after timer expires
 void handler(int sig, siginfo_t *si, void *uc)
 {
-//reset time for a period
+//change duty cycle
+    if (high){
+        high = 0;
+        WCYPRESS(0x2B, 40);
+    }
+    else {
+        high = 1;
+        WCYPRESS(0x2B, 160);
+    }
+/*
+//reset timer
     set_time(0, highT, 0, 0);
 
     if(timer_settime(timerid, 0, &its, NULL) == -1) {
         perror("failed: ");
         exit_sig = 1;
     }
-    if (high){
-        high = 0;
-        WCYPRESS(0x28, 2, 1, 3, 2);
-        WCYPRESS(0x28, 3, 5, 205, 200);
-    }
-    else {
-        high = 1;
-
-        WCYPRESS(0x28, 2, 1, 3, 2);
-        WCYPRESS(0x28, 3, 5, 205, 10);
-    }
-        
+       */ 
     
 }
 //write to the cypress pwm
@@ -131,18 +123,19 @@ int pwm()
     if (timer_create(CLKID, &sev, &timerid) == -1)
         perror("timer create: \n");
 
-    set_time(0, highT, 0, 0);
+    set_time(0, highT, 0, highT);
     
     //PWM select, clockid, period, pulse width, f dividier
     //format:reg1, val-of-reg1, val-of-reg2, val-of-reg3 ...
     //40 kHz pwm
     WCYPRESS(0x28, 2, 1, 3, 2);
-    WCYPRESS(0x28, 3, 5, 205, 10);
+    WCYPRESS(0x28, 3, 5, 205, 102);
 
-    if(timer_settime(timerid, 0, &its, NULL) == -1) {
+    /*if(timer_settime(timerid, 0, &its, NULL) == -1) {
         perror("failed: ");
         exit_sig = 1;
-    }
+    }*/
+    while (1) { handler(0, NULL, NULL); }
 
    // int clkid1 = 1; int T1 = 3; int T2 = 205;
   //  printf("clk freq: %f Hz\n", getfreq(getfreq(clkid1, T1, 1), T2, 1)); 
